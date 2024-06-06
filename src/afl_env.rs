@@ -42,7 +42,7 @@ impl AFLEnv {
     pub fn new() -> Self {
         Self {
             flags: HashSet::new(),
-            testcache_size: 50,
+            testcache_size: 256,
         }
     }
 
