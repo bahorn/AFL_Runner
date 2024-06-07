@@ -171,6 +171,20 @@ pub struct AFLCmdGenerator {
     cmpcov_idxs: Vec<usize>,
 }
 
+
+fn new_tmp_dir() -> Vec<String> {
+    let mut res = Vec::new();
+
+    let mut rng = rand::thread_rng();
+    let num: u16 = rng.gen();
+    let new_path = "/ramdisk/tmp".to_string() + &num.to_string();
+    fs::create_dir(new_path.clone()).ok();
+
+    res.push(format!("AFL_TMPDIR={} ", new_path));
+
+    res
+}
+
 impl AFLCmdGenerator {
     /// Creates a new `AFLCmdGenerator` instance
     pub fn new(
@@ -313,6 +327,7 @@ impl AFLCmdGenerator {
             .map(|config| {
                 let mut cmd = AflCmd::new(afl_binary.clone(), target_binary.clone());
                 cmd.extend_env(config.generate_afl_env_cmd(), false);
+                cmd.extend_env(new_tmp_dir(), false);
                 if let Some(raw_afl_flags) = &self.raw_afl_flags {
                     cmd.set_misc_afl_flags(
                         raw_afl_flags
@@ -378,7 +393,7 @@ impl AFLCmdGenerator {
 
         for (i, cmd) in cmds[1..].iter_mut().enumerate() {
             let suffix = if cmd.misc_afl_flags.iter().any(|f| f.contains("-c")) {
-                format!("_{target_fname}_cmplog")
+                format!("_{target_fname}_cl")
             } else {
                 format!("_{target_fname}")
             };
@@ -391,9 +406,9 @@ impl AFLCmdGenerator {
                     .to_str()
                     .unwrap()
                     .replace('.', "_");
-                format!("-S sub_{i}_{cmpcov_fname}")
+                format!("-S s_{i}_{cmpcov_fname}")
             } else {
-                format!("-S sub_{i}{suffix}")
+                format!("-S s_{i}{suffix}")
             };
 
             cmd.misc_afl_flags.push(s_flag);
